@@ -2,6 +2,11 @@
 #include <BLEUtils.h>
 #include <BLEScan.h>
 #include <Arduino.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <OneButton.h>
 
 // Define the service UUID for the RAPT Pill
 #define RAPT_PILL_SERVICE_UUID "0000fff0-0000-1000-8000-00805f9b34fb"
@@ -9,10 +14,21 @@
 const uint16_t SCAN_INTERVAL = 3000; // 1000 ms = 1 se
 const uint16_t SCAN_WINDOW = 2000;    // 1000 ms = 1 sec
 
-const unsigned long SCAN_INTERVAL_MS = 0.5 * 60 * 1000; // 5 minutes (in milliseconds)
+const unsigned long SCAN_INTERVAL_MS = 1 * 60 * 1000; // 1 minutes (in milliseconds)
 
 unsigned long lastScanTime = 0;
 bool isScanning = false;
+
+//i2c LCD 20x4
+LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
+
+#define ONE_WIRE_BUS 2
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature DS18B20(&oneWire);
+float temp1;
+
+//buttons
+OneButton buttonOne(0, true);
 
 // Method to print the raw advertisement data in hexadecimal format
 void printRawAdvertisementData(const uint8_t* data, size_t length) {
@@ -44,12 +60,12 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
     // Get the advertised data
     std::string manufacturerData = advertisedDevice.getManufacturerData();
     // Print the manufacturer data in hexadecimal format
-    //Serial.print("Manufacturer Data: ");
-    //for (int i = 0; i < manufacturerData.length(); i++) {
-    //  Serial.print(manufacturerData[i], HEX);
-    //  Serial.print(" ");
-    //}
-    //Serial.println();
+    Serial.print("Manufacturer Data: ");
+    for (int i = 0; i < manufacturerData.length(); i++) {
+      Serial.print(manufacturerData[i], HEX);
+      Serial.print(" ");
+    }
+    Serial.println();
     // Check if the advertisement has valid manufacturer data and is of RAPT Pill service
     if (!manufacturerData.empty() && manufacturerData.find("RAPT") == 0) {
       //Serial.print("Name: ");
@@ -131,17 +147,13 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
         Serial.print(", Battery SOC (%): ");
         Serial.println(batterySOC / 256.0);
       }
-      // Add more conditions here for other versions if required
-
-      // You can add more code here to process the data as needed
-      stopBLEScan();
     }
   }
 };
 
 void startBLEScan() {
   // Start the BLE scanning process
-  Serial.println("Start Scanning");
+  Serial.println("Start Scanning....");
   BLEScan* pBLEScan = BLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
   pBLEScan->setActiveScan(true);
@@ -154,7 +166,7 @@ void startBLEScan() {
 
 void stopBLEScan() {
   // Stop the BLE scanning process
-  Serial.println("Stop Scanning");
+  Serial.println("Stop Scanning!!!");
   BLEScan* pBLEScan = BLEDevice::getScan();
   pBLEScan->stop();
   isScanning = false;
@@ -164,20 +176,33 @@ void stopBLEScan() {
 void setup() {
   Serial.begin(115200);
   BLEDevice::init("");
-  //startBLEScan();
+  
+  //lcd.init();
+  //lcd.backlight();      // Turn on the backlight.
+  //lcd.setCursor(3, 0);  // Move the cursor at origin
+  //lcd.print("HELLO READERS,");
+  //lcd.setCursor(0, 1);
+  //lcd.print("Interfacing nodemcu");
+  //lcd.setCursor(0, 2);
+  //lcd.print("with LCD 20X4.");
 }
 
 void loop() {
   unsigned long currentMillis = millis();
-
+  //lcd.setCursor(5, 3);
+  //lcd.print("GOOD LUCK!");
+  Serial.println("Start loop");
   // Check if it's time to start a new scan cycle
   if (!isScanning && (currentMillis - lastScanTime >= SCAN_INTERVAL_MS)) {
-        startBLEScan();
+       startBLEScan();
   }
 
   // Check if the scan cycle is complete
   if (isScanning && (currentMillis - lastScanTime >= SCAN_INTERVAL_MS)) {
-    stopBLEScan();
+       stopBLEScan();
   }
+  //lcd.setCursor(5, 3);
+  //lcd.clear();
+  Serial.print("End loop");
   delay(1000);
 }
