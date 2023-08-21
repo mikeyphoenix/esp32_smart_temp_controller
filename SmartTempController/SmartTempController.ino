@@ -8,7 +8,8 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <OneButton.h>
-
+#include <FreeRTOS.h>
+#include <Task.h>
 //#include <src/icons/Icons.h> https://www.makerguides.com/character-i2c-lcd-arduino-tutorial/
 
 // Define the service UUID for the RAPT Pill
