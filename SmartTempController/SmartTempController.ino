@@ -9,6 +9,8 @@
 #include <LiquidCrystal_I2C.h>
 #include <OneButton.h>
 
+//#include <src/icons/Icons.h> https://www.makerguides.com/character-i2c-lcd-arduino-tutorial/
+
 // Define the service UUID for the RAPT Pill
 #define RAPT_PILL_SERVICE_UUID "0000fff0-0000-1000-8000-00805f9b34fb"
 
@@ -24,10 +26,11 @@ bool isScanning = false;
 //i2c LCD 20x4
 LiquidCrystal_I2C lcd(0x27,20,4);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 
-#define ONE_WIRE_BUS 2
+#define ONE_WIRE_BUS 23
 OneWire oneWire(ONE_WIRE_BUS);
-DallasTemperature DS18B20(&oneWire);
+DallasTemperature temp_sensors(&oneWire); //https://www.instructables.com/Calibration-of-DS18B20-Sensor-With-Arduino-UNO/
 float temp1;
+float temp2;
 
 //buttons
 OneButton buttonOne(0, true);
@@ -226,19 +229,13 @@ class MyAdvertisedDeviceCallbacks : public BLEAdvertisedDeviceCallbacks {
 void startBLEScan() {
   // Start the BLE scanning process
   Serial.println("Start Scanning....");
-  /*BLEScan* pBLEScan = BLEDevice::getScan();
-  pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-  pBLEScan->setActiveScan(true);
-  pBLEScan->setInterval(SCAN_INTERVAL);
-  pBLEScan->setWindow(SCAN_WINDOW);*/
-  //pBLEScan->start(SCAN_INTERVAL_MS);
+
   pBLEScan->start(SCAN_INTERVAL_MS, false);
 }
 
 void stopBLEScan() {
   // Stop the BLE scanning process
   Serial.println("Stop Scanning!!!");
-  //BLEScan* pBLEScan = BLEDevice::getScan();
   pBLEScan->stop();
 }
 
@@ -255,16 +252,11 @@ void initLCD() {
   lcd.init();
   lcd.backlight();      // Turn on the backlight.
   lcd.clear();
-  /*lcd.setCursor(3, 0);  // Move the cursor at origin
-  lcd.print("HELLO READERS,");
-  lcd.setCursor(0, 1);
-  lcd.print("Interfacing nodemcu");
-  lcd.setCursor(0, 2);
-  lcd.print("with LCD 20X4.");*/
 }
 
 void initTempProbes() {
-
+  // Start up the library
+  temp_sensors.begin();
 }
 
 void setup() {
@@ -294,11 +286,23 @@ void loop() {
        lastScanTime = millis();
        stopBLEScan();
   }
+  getTempSensorReading();
   //lcd.setCursor(5, 3);
   //lcd.clear();
   printToLCD();
-  Serial.print("End loop");
+  Serial.println("End loop");
   //delay(1000);
+}
+
+void getTempSensorReading() {
+  temp_sensors.requestTemperatures();
+  float temp1C = temp_sensors.getTempCByIndex(0);
+  if(temp1C == DEVICE_DISCONNECTED_C) {
+    Serial.println("Error with temp1 probe");
+  } else {
+    Serial.print("Temp1 probe value : ");
+    Serial.println(temp1C);
+  }
 }
 
 void printToLCD() {
